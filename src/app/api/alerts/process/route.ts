@@ -1,7 +1,12 @@
-// app/api/alerts/process/route.ts
 import { NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import { Resend } from 'resend';
+
+// Type for the transaction client
+type TransactionClient = Omit<
+  PrismaClient,
+  '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'
+>;
 
 // Global prisma instance with connection management
 const globalForPrisma = globalThis as unknown as {
@@ -27,13 +32,19 @@ type Criterion = {
   value: string;
 };
 
+type ProcessResult = {
+  email: string;
+  matchedListings?: number;
+  error?: string;
+  success: boolean;
+};
+
 export async function GET() {
   try {
-    // Start a new transaction for better connection management
-    const result = await prisma.$transaction(async (tx) => {
+    const result = await prisma.$transaction(async (tx: TransactionClient) => {
+      const processedResults: ProcessResult[] = [];
       const subscriptions = await tx.subscription.findMany();
       const now = new Date();
-      const processedResults = [];
 
       for (const subscription of subscriptions) {
         try {
@@ -59,7 +70,6 @@ export async function GET() {
           });
 
           if (matchingListings.length > 0) {
-            // Send email
             await resend.emails.send({
               from: 'Scout <notifications@scout.yourdomain.com>',
               to: subscription.email,
@@ -77,7 +87,6 @@ export async function GET() {
               `,
             });
 
-            // Update last notified timestamp
             await tx.subscription.update({
               where: { id: subscription.id },
               data: { lastNotified: now },
@@ -113,7 +122,6 @@ export async function GET() {
       { status: 500 }
     );
   } finally {
-    // Disconnect Prisma client in non-production environments
     if (process.env.NODE_ENV !== 'production') {
       await prisma.$disconnect();
     }
