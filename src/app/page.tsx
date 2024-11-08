@@ -221,7 +221,7 @@ export default function Home() {
                         rel="noopener noreferrer"
                       >
 
-                        <div className="flex items-center flex-col sm:flex-row sm:justify-between">
+                        <div className='flex justify-start items-center'>
                           <div className='pr-4'>
                             <CompanyLogo companyName={listing.company} />
                           </div>
@@ -249,7 +249,7 @@ export default function Home() {
                             </div>
                           </div>
 
-                          <div className="flex items-center mt-2 sm:mt-0">
+                          <div className="flex items-center mt-2 p-5 sm:mt-0">
                             <ExternalLink className="w-5 h-5" />
                           </div>
                         </div>
