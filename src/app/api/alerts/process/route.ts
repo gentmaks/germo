@@ -5,6 +5,19 @@ import { Resend } from 'resend';
 const prisma = new PrismaClient();
 const resend = new Resend(process.env.RESEND_API_KEY);
 
+type Listing = {
+  title: string;
+  company: string;
+  location: string;
+  link: string;
+  datePosted: string;
+};
+
+type Criterion = {
+  type: 'company' | 'location' | 'keyword';
+  value: string;
+};
+
 export async function GET() {
   try {
     const subscriptions = await prisma.subscription.findMany();
@@ -16,17 +29,16 @@ export async function GET() {
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/fetchJobs`);
       const { listings } = await response.json();
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const matchingListings = listings.filter((listing: any) => {
+      const matchingListings = listings.filter((listing: Listing) => {
         const listingDate = new Date(listing.datePosted);
         if (listingDate <= lastNotified) return false;
 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return subscription.criteria.some((criterion: any) => {
-          const value = listing[criterion.type === 'keyword' ? 'title' : criterion.type]
-            .toLowerCase();
+        const criteria = subscription.criteria as Criterion[];
+
+        return criteria?.some((criterion: Criterion) => {
+          const value = listing[criterion.type === 'keyword' ? 'title' : criterion.type].toLowerCase();
           return value.includes(criterion.value.toLowerCase());
-        });
+        }) ?? false;
       });
 
       if (matchingListings.length > 0) {
@@ -37,7 +49,7 @@ export async function GET() {
           html: `
             <h1>New Job Listings</h1>
             <p>We found ${matchingListings.length} new listings matching your criteria:</p>
-            ${matchingListings.map((listing: any) => `
+            ${matchingListings.map((listing: Listing) => `
               <div style="margin-bottom: 20px;">
                 <h2>${listing.title}</h2>
                 <p><strong>${listing.company}</strong> - ${listing.location}</p>

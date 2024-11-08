@@ -102,7 +102,7 @@ export default function AlertForm({ isOpen, onClose }: AlertFormProps) {
             <div className="flex gap-2 mb-2">
               <select
                 value={newCriteriaType}
-                onChange={(e) => setNewCriteriaType(e.target.value as any)}
+                onChange={(e) => setNewCriteriaType(e.target.value as 'company' | 'location' | 'keyword')}
                 className="px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-xs focus:outline-none"
               >
                 <option value="company">Company</option>
