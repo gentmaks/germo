@@ -8,14 +8,22 @@ type TransactionClient = Omit<
   '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'
 >;
 
-// Global prisma instance with connection management
-const globalForPrisma = globalThis as unknown as {
-  prisma: PrismaClient | undefined
-};
-
-const prisma = globalForPrisma.prisma ?? new PrismaClient();
-
-if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
+// Initialize Prisma with connection pooling settings
+const prisma = new PrismaClient({
+  log: ['error', 'warn'],
+  datasources: {
+    db: {
+      url: process.env.DATABASE_URL
+    }
+  },
+  // Add connection pooling settings
+  __internal: {
+    engine: {
+      connectionLimit: 1, // Limit concurrent connections
+      poolTimeout: 20, // Timeout in seconds
+    }
+  }
+});
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -40,10 +48,19 @@ type ProcessResult = {
 };
 
 export async function GET() {
+  // Create a new client for this request
+  let localPrisma: PrismaClient | null = null;
+
   try {
-    const result = await prisma.$transaction(async (tx: TransactionClient) => {
+    // Use a new client instance for this request
+    localPrisma = new PrismaClient();
+    await localPrisma.$connect();
+
+    const result = await localPrisma.$transaction(async (tx: TransactionClient) => {
       const processedResults: ProcessResult[] = [];
-      const subscriptions = await tx.subscription.findMany();
+
+      // Use a simple query without prepared statements
+      const subscriptions = await tx.$queryRaw`SELECT * FROM "Subscription"`;
       const now = new Date();
 
       for (const subscription of subscriptions) {
@@ -87,10 +104,12 @@ export async function GET() {
               `,
             });
 
-            await tx.subscription.update({
-              where: { id: subscription.id },
-              data: { lastNotified: now },
-            });
+            // Use parameterized query instead of prepared statement
+            await tx.$executeRaw`
+              UPDATE "Subscription" 
+              SET "lastNotified" = ${now} 
+              WHERE id = ${subscription.id}
+            `;
 
             processedResults.push({
               email: subscription.email,
@@ -122,8 +141,8 @@ export async function GET() {
       { status: 500 }
     );
   } finally {
-    if (process.env.NODE_ENV !== 'production') {
-      await prisma.$disconnect();
+    if (localPrisma) {
+      await localPrisma.$disconnect();
     }
   }
 }
