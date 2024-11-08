@@ -72,7 +72,7 @@ const CompanyLogo = ({ companyName }: CompanyLogoProps) => {
         src={logoUrl}
         alt={`${companyName} logo`}
         fill
-        className="rounded-2xl object-contain"
+        className="rounded-md object-contain"
         onError={() => setLogoUrl('')}
         unoptimized
         sizes="48px"
