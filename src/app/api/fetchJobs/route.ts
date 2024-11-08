@@ -9,6 +9,7 @@ type Listing = {
   location: string;
   link: string;
   datePosted: string;
+  salary: string;
 };
 
 function ageToDate(age: string): string {
@@ -32,6 +33,7 @@ async function fetchScoutListings(): Promise<Listing[]> {
   const htmlContent = await marked(data);
   const $ = cheerio.load(htmlContent);
   const listings: Listing[] = [];
+  const salary = '';
 
   const rows = $('table tbody tr');
   let prevCompany = "";
@@ -47,9 +49,12 @@ async function fetchScoutListings(): Promise<Listing[]> {
     const title = $(element).find('td').eq(1).text().trim();
     const location = $(element).find('td').eq(2).text().trim();
     const link = $(element).find('td').eq(3).find('a').attr('href') || '';
+    if (link == '') {
+      return true
+    }
     const datePosted = $(element).find('td').eq(4).text().trim();
 
-    listings.push({ company, title, location, link, datePosted });
+    listings.push({ company, title, location, link, datePosted, salary });
   });
 
   return listings;
@@ -62,23 +67,35 @@ async function fetchSpeedyApplyListings(): Promise<Listing[]> {
   const $ = cheerio.load(htmlContent);
   const listings: Listing[] = [];
 
-  const rows = $('table tbody tr');
+  $('table').each((_, table) => {
+    const rows = $(table).find('tbody tr');
 
-  rows.each((_, element) => {
-    const company = $(element).find('td').eq(0).text().trim();
-    const title = $(element).find('td').eq(1).text().trim();
-    const location = $(element).find('td').eq(2).text().trim();
-    const link = $(element).find('td').eq(3).find('a').attr('href') || '';
-    const age = $(element).find('td').eq(4).text().trim();
-    const datePosted = ageToDate(age);
+    rows.each((_, element) => {
+      const company = $(element).find('td').eq(0).text().trim();
+      const title = $(element).find('td').eq(1).text().trim();
+      const location = $(element).find('td').eq(2).text().trim();
+      let link = ''
+      let salary = ''
+      let age = ''
+      if ($(element).find('td').eq(3).text().includes('$')) {
+        salary = $(element).find('td').eq(3).text().trim();
+        link = $(element).find('td').eq(4).find('a').attr('href') || '';
+        age = $(element).find('td').eq(5).text().trim();
+      } else {
+        link = $(element).find('td').eq(3).find('a').attr('href') || '';
+        age = $(element).find('td').eq(4).text().trim();
+      }
+      const datePosted = ageToDate(age);
 
-    if (company && title) {
-      listings.push({ company, title, location, link, datePosted });
-    }
+      if (company && title) {
+        listings.push({ company, title, location, link, datePosted, salary });
+      }
+    });
   });
 
   return listings;
 }
+
 
 export async function GET() {
   try {
