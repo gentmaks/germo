@@ -34,7 +34,7 @@ const CompanyLogo = ({ companyName }: CompanyLogoProps) => {
       try {
         const response = await fetch(`https://api.brandfetch.io/v2/search/${encodeURIComponent(companyName)}`, {
           headers: {
-            'Authorization': 'Bearer 1idGxgGDGaeL9nvXFW6'
+            'Authorization': `Bearer ${process.env.BRANCHFETCH_SECRET}`
           }
         });
 
