@@ -121,53 +121,73 @@ export default function Home() {
       <div className="container mx-auto px-4">
         <div className="max-w-4xl mx-auto font-mono">
           {/* Search, Filter, and Items Per Page Controls */}
-          <div className="flex flex-col sm:flex-row w-full text-xs items-center mb-6 space-y-3 sm:space-y-0 sm:space-x-4">
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder={`Search by ${filter}`}
-              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none"
-            />
-            <div className="flex items-center gap-2 max-w-full flex-row text-wrap justify-between">
-              <select
-                value={filter}
-                onChange={(e) => setFilter(e.target.value as "title" | "company" | "location")}
-                className="px-4 text-xs py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none"
-              >
-                <option value="title">Job Title</option>
-                <option value="company">Company</option>
-                <option value="location">Location</option>
-              </select>
-              <select
-                value={itemsPerPage}
-                onChange={(e) => handleItemsPerPageChange(Number(e.target.value))}
-                className="px-4 text-xs py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none"
-              >
-                <option value={20}>20 per page</option>
-                <option value={50}>50 per page</option>
-                <option value={100}>100 per page</option>
-              </select>
-              <div className="flex items-center px-4 py-2 space-x-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none hover:shadow-sm transition-shadow duration-200 ease-in-out">
-                <label className="inline-flex items-center cursor-pointer">
-                  <input type="checkbox" checked={isFaang}
-                    onChange={(e) => setIsFaang(e.target.checked)} value="" className="sr-only peer" />
-                  <div className="relative w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
-                  <span className="ms-3 text-sm font-medium text-gray-900 dark:text-gray-300">FAANG+</span>
-                </label>
+          <div className="flex flex-col gap-4 w-full py-4">
+            {/* Search Input - Full width on all screens */}
+            <div className="w-full">
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder={`Search by ${filter}`}
+                className="w-full px-4 py-2.5 text-sm border border-gray-200 rounded-lg bg-white dark:bg-gray-800 dark:border-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 ease-in-out"
+              />
+            </div>
+
+            {/* Controls Container */}
+            <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
+              {/* Left side controls */}
+              <div className="flex flex-wrap gap-2">
+                {/* Filter Select */}
+                <select
+                  value={filter}
+                  onChange={(e) => setFilter(e.target.value as "title" | "company" | "location")}
+                  className="px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white dark:bg-gray-800 dark:border-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all duration-200 ease-in-out"
+                >
+                  <option value="title">Job Title</option>
+                  <option value="company">Company</option>
+                  <option value="location">Location</option>
+                </select>
+
+                {/* Items Per Page Select */}
+                <select
+                  value={itemsPerPage}
+                  onChange={(e) => handleItemsPerPageChange(Number(e.target.value))}
+                  className="px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white dark:bg-gray-800 dark:border-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all duration-200 ease-in-out"
+                >
+                  <option value={20}>20 per page</option>
+                  <option value={50}>50 per page</option>
+                  <option value={100}>100 per page</option>
+                </select>
               </div>
 
+              {/* Right side controls */}
+              <div className="flex items-center gap-3">
+                {/* FAANG Toggle */}
+                <div className="flex items-center px-4 py-2 border border-gray-200 rounded-lg bg-white dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all duration-200 ease-in-out">
+                  <label className="flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={isFaang}
+                      onChange={(e) => setIsFaang(e.target.checked)}
+                      className="sr-only peer"
+                    />
+                    <div className="relative w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-blue-500">
+                    </div>
+                    <span className="ml-2 text-sm font-medium text-gray-900 dark:text-gray-300">FAANG+</span>
+                  </label>
+                </div>
 
-              <div className="">
+                {/* Alert Button */}
                 <button
                   onClick={() => setShowAlertForm(true)}
-                  className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 focus:outline-none text-xs"
+                  className="flex items-center px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200 ease-in-out"
                 >
                   <Bell className="w-4 h-4" />
                 </button>
               </div>
             </div>
           </div>
+
 
           {isLoading ? (
             <div className="container mx-auto flex-col p-4 flex items-center justify-center">
@@ -203,7 +223,7 @@ export default function Home() {
                           <div className="flex-1 space-y-1">
                             <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400 text-xs">
                               <Briefcase className="w-4 h-4" />
-                              <span className="font-medium">{listing.company}</span>
+                              <span className="font-medium" >{listing.company}</span>
                             </div>
 
                             <h2 className="text-sm text-gray-900 dark:text-gray-100">
