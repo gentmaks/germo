@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { Briefcase, MapPin, Calendar, ExternalLink, Bell } from 'lucide-react';
 import AlertForm from '@/components/Alert';
+import CompanyLogo from '@/components/CompanyLogo';
 
 type Listing = {
   title: string;
@@ -219,11 +220,17 @@ export default function Home() {
                         target="_blank"
                         rel="noopener noreferrer"
                       >
-                        <div className="flex flex-col sm:flex-row sm:justify-between">
+
+                        <div className="flex items-center flex-col sm:flex-row sm:justify-between">
+                          <div className='pr-4'>
+                            <CompanyLogo companyName={listing.company} />
+                          </div>
                           <div className="flex-1 space-y-1">
                             <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400 text-xs">
-                              <Briefcase className="w-4 h-4" />
-                              <span className="font-medium" >{listing.company}</span>
+                              <div className="flex items-center gap-2">
+                                <Briefcase className="w-4 h-4" />
+                                <span className="font-medium">{listing.company}</span>
+                              </div>
                             </div>
 
                             <h2 className="text-sm text-gray-900 dark:text-gray-100">
