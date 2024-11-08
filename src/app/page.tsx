@@ -1,101 +1,205 @@
-import Image from "next/image";
+"use client";
+
+import { useEffect, useState, useRef, useCallback } from 'react';
+import { Briefcase, MapPin, Calendar, ExternalLink } from 'lucide-react';
+
+type Listing = {
+  title: string;
+  link: string;
+  location: string;
+  datePosted: string;
+  company: string;
+};
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+  const [listings, setListings] = useState<Listing[]>([]);
+  const [filtered, setFiltered] = useState<Listing[]>([]);
+  const [displayedListings, setDisplayedListings] = useState<Listing[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [search, setSearch] = useState("");
+  const [filter, setFilter] = useState<"title" | "company" | "location">("company");
+  const [itemsPerPage, setItemsPerPage] = useState(20);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const observer = useRef<IntersectionObserver | null>(null);
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+  // Fetch initial data
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        const response = await fetch('/api/fetchJobs');
+        const data = await response.json();
+        setListings(data.listings);
+        setFiltered(data.listings);
+      } catch (error) {
+        console.error('Error fetching listings:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    fetchData();
+  }, []);
+
+  // Filter listings based on search
+  useEffect(() => {
+    const filteredListings = listings.filter((listing) =>
+      listing[filter].toLowerCase().includes(search.toLowerCase())
+    );
+    setFiltered(filteredListings);
+    setPage(1); // Reset page when search changes
+    setHasMore(true);
+  }, [search, filter, listings]);
+
+  // Update displayed listings based on pagination
+  useEffect(() => {
+    const startIndex = 0;
+    const endIndex = page * itemsPerPage;
+    const newDisplayedListings = filtered.slice(startIndex, endIndex);
+    setDisplayedListings(newDisplayedListings);
+    setHasMore(endIndex < filtered.length);
+  }, [filtered, page, itemsPerPage]);
+
+  // Last element ref for infinite scroll
+  const lastListingElementRef = useCallback((node: HTMLDivElement | null) => {
+    if (isLoading) return;
+
+    if (observer.current) observer.current.disconnect();
+
+    observer.current = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting && hasMore) {
+        setPage(prevPage => prevPage + 1);
+      }
+    });
+
+    if (node) observer.current.observe(node);
+  }, [isLoading, hasMore]);
+
+  // Handle items per page change
+  const handleItemsPerPageChange = (newItemsPerPage: number) => {
+    setItemsPerPage(newItemsPerPage);
+    setPage(1); // Reset to first page
+    setHasMore(true);
+  };
+
+  if (isLoading) {
+    return (
+      <div className="container mx-auto p-4 min-h-screen flex items-center justify-center">
+        <div className="animate-pulse space-y-4 w-full max-w-4xl">
+          {[...Array(5)].map((_, i) => (
+            <div key={i} className="h-20 bg-gray-200 dark:bg-gray-700 rounded-lg" />
+          ))}
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
+
+
+      <div className="max-w-4xl py-8 flex flex-col items-center justify-center mx-auto">
+        <div className="relative group cursor-pointer">
+          <span className="text-4xl tracking-[-0.01em]  font-extralight bg-gradient-to-r from-gray-800 to-gray-600 dark:from-gray-100 dark:to-gray-300 bg-clip-text text-transparent transition-all duration-300 ease-in-out group-hover:tracking-[0.2em]">
+            scout
+          </span>
+          <div className="absolute -bottom-1 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-gray-400 dark:via-gray-500 to-transparent transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300 ease-in-out"></div>
+        </div>
+      </div>
+
+      <div className="container mx-auto px-4 py-4">
+        <div className="max-w-4xl mx-auto font-mono">
+          {/* Search, Filter, and Items Per Page Controls */}
+          <div className="flex flex-col sm:flex-row w-full text-xs items-center mb-6 space-y-3 sm:space-y-0 sm:space-x-4">
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder={`Search by ${filter}`}
+              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none"
+            />
+            <div className="flex gap-2 justify-between w-full sm:w-auto">
+              <select
+                value={filter}
+                onChange={(e) => setFilter(e.target.value as "title" | "company" | "location")}
+                className="px-4 text-xs py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none"
+              >
+                <option value="title">Job Title</option>
+                <option value="company">Company</option>
+                <option value="location">Location</option>
+              </select>
+              <select
+                value={itemsPerPage}
+                onChange={(e) => handleItemsPerPageChange(Number(e.target.value))}
+                className="px-4 text-xs py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none"
+              >
+                <option value={20}>20 per page</option>
+                <option value={50}>50 per page</option>
+                <option value={100}>100 per page</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Results count */}
+          <div className="text-xs text-gray-500 dark:text-gray-400 mb-4">
+            Showing {displayedListings.length} of {filtered.length} listings
+          </div>
+
+          <div className="space-y-3">
+            {displayedListings.length > 0 ? (
+              displayedListings.map((listing, index) => (
+                <div
+                  key={index}
+                  ref={index === displayedListings.length - 1 ? lastListingElementRef : null}
+                  className="bg-white dark:bg-gray-800 rounded-lg duration-200 overflow-hidden border border-gray-100 dark:border-gray-700"
+                >
+                  <a
+                    href={listing.link}
+                    className="block p-4 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors duration-200"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <div className="flex flex-col sm:flex-row sm:justify-between">
+                      <div className="flex-1 space-y-1">
+                        <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400 text-xs">
+                          <Briefcase className="w-4 h-4" />
+                          <span className="font-medium">{listing.company}</span>
+                        </div>
+
+                        <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                          {listing.title}
+                        </h2>
+
+                        <div className="flex flex-wrap gap-4 text-xs text-gray-500 dark:text-gray-400">
+                          <div className="flex items-center gap-1">
+                            <MapPin className="w-4 h-4" />
+                            <span>{listing.location}</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <Calendar className="w-4 h-4" />
+                            <span>{listing.datePosted}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center mt-2 sm:mt-0">
+                        <ExternalLink className="w-5 h-5" />
+                      </div>
+                    </div>
+                  </a>
+                </div>
+              ))
+            ) : (
+              <p className="text-center text-gray-600 dark:text-gray-400">No listings found.</p>
+            )}
+          </div>
+
+          {hasMore && (
+            <div className="text-center py-4">
+              <div className="animate-pulse text-gray-500 dark:text-gray-400">Loading more...</div>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
