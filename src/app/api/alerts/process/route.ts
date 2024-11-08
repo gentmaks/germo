@@ -8,23 +8,6 @@ type TransactionClient = Omit<
   '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'
 >;
 
-// Initialize Prisma with connection pooling settings
-const prisma = new PrismaClient({
-  log: ['error', 'warn'],
-  datasources: {
-    db: {
-      url: process.env.DATABASE_URL
-    }
-  },
-  // Add connection pooling settings
-  __internal: {
-    engine: {
-      connectionLimit: 1, // Limit concurrent connections
-      poolTimeout: 20, // Timeout in seconds
-    }
-  }
-});
-
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 type Listing = {
@@ -47,20 +30,35 @@ type ProcessResult = {
   success: boolean;
 };
 
+type Subscription = {
+  id: string;
+  email: string;
+  lastNotified: Date;
+  criteria: Criterion[];
+};
+
 export async function GET() {
-  // Create a new client for this request
   let localPrisma: PrismaClient | null = null;
 
   try {
-    // Use a new client instance for this request
-    localPrisma = new PrismaClient();
+    localPrisma = new PrismaClient({
+      log: ['error', 'warn'],
+    });
     await localPrisma.$connect();
 
     const result = await localPrisma.$transaction(async (tx: TransactionClient) => {
       const processedResults: ProcessResult[] = [];
 
-      // Use a simple query without prepared statements
-      const subscriptions = await tx.$queryRaw`SELECT * FROM "Subscription"`;
+      // Type the raw query results
+      const subscriptions = await tx.$queryRaw<Subscription[]>`
+        SELECT 
+          id,
+          email,
+          "lastNotified",
+          criteria
+        FROM "Subscription"
+      `;
+
       const now = new Date();
 
       for (const subscription of subscriptions) {
