@@ -86,7 +86,7 @@ export async function GET() {
 
           if (matchingListings.length > 0) {
             await resend.emails.send({
-              from: 'Scout <notifications@scout.yourdomain.com>',
+              from: 'Scout <onboarding@resend.dev>',
               to: subscription.email,
               subject: 'New Job Listings Match Your Criteria',
               html: `
