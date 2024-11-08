@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState, useRef, useCallback } from 'react';
-import { Briefcase, MapPin, Calendar, ExternalLink } from 'lucide-react';
+import { Briefcase, MapPin, Calendar, ExternalLink, Bell } from 'lucide-react';
+import AlertForm from '@/components/Alert';
 
 type Listing = {
   title: string;
@@ -21,7 +22,9 @@ export default function Home() {
   const [itemsPerPage, setItemsPerPage] = useState(20);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
+  const [showAlertForm, setShowAlertForm] = useState(false);
   const observer = useRef<IntersectionObserver | null>(null);
+
 
   // Fetch initial data
   useEffect(() => {
@@ -117,7 +120,7 @@ export default function Home() {
               placeholder={`Search by ${filter}`}
               className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none"
             />
-            <div className="flex gap-2 justify-between w-full sm:w-auto">
+            <div className="flex items-center gap-2 justify-between w-auto">
               <select
                 value={filter}
                 onChange={(e) => setFilter(e.target.value as "title" | "company" | "location")}
@@ -136,6 +139,15 @@ export default function Home() {
                 <option value={50}>50 per page</option>
                 <option value={100}>100 per page</option>
               </select>
+              <div className="">
+                <button
+                  onClick={() => setShowAlertForm(true)}
+                  className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 focus:outline-none text-xs"
+                >
+                  <Bell className="w-4 h-4" />
+                  Alerts
+                </button>
+              </div>
             </div>
           </div>
 
@@ -200,6 +212,10 @@ export default function Home() {
           )}
         </div>
       </div>
+      <AlertForm
+        isOpen={showAlertForm}
+        onClose={() => setShowAlertForm(false)}
+      />
     </div>
   );
 }
