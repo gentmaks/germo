@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef, useCallback } from 'react';
-import { Briefcase, MapPin, Calendar, ExternalLink, Bell } from 'lucide-react';
+import { Briefcase, MapPin, Calendar, ExternalLink, Bell, DollarSign } from 'lucide-react';
 import AlertForm from '@/components/Alert';
 import CompanyLogo from '@/components/CompanyLogo';
 
@@ -11,6 +11,7 @@ type Listing = {
   location: string;
   datePosted: string;
   company: string;
+  salary: string;
 };
 
 export default function Home() {
@@ -246,6 +247,12 @@ export default function Home() {
                                 <Calendar className="w-4 h-4" />
                                 <span>{listing.datePosted}</span>
                               </div>
+                              {listing.salary.includes('$') && (
+                                <div className="flex items-center">
+                                  <DollarSign className="w-4 h-4" />
+                                  <span>{listing.salary.replace('$', '')}</span>
+                                </div>
+                              )}
                             </div>
                           </div>
 
