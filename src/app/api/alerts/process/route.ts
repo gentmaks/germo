@@ -1,8 +1,17 @@
+// app/api/alerts/process/route.ts
 import { NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import { Resend } from 'resend';
 
-const prisma = new PrismaClient();
+// Global prisma instance with connection management
+const globalForPrisma = globalThis as unknown as {
+  prisma: PrismaClient | undefined
+};
+
+const prisma = globalForPrisma.prisma ?? new PrismaClient();
+
+if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
+
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 type Listing = {
@@ -20,58 +29,93 @@ type Criterion = {
 
 export async function GET() {
   try {
-    const subscriptions = await prisma.subscription.findMany();
-    const now = new Date();
+    // Start a new transaction for better connection management
+    const result = await prisma.$transaction(async (tx) => {
+      const subscriptions = await tx.subscription.findMany();
+      const now = new Date();
+      const processedResults = [];
 
-    for (const subscription of subscriptions) {
-      const lastNotified = new Date(subscription.lastNotified);
+      for (const subscription of subscriptions) {
+        try {
+          const lastNotified = new Date(subscription.lastNotified);
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/fetchJobs`);
-      const { listings } = await response.json();
+          const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/fetchJobs`);
+          if (!response.ok) {
+            throw new Error('Failed to fetch jobs');
+          }
 
-      const matchingListings = listings.filter((listing: Listing) => {
-        const listingDate = new Date(listing.datePosted);
-        if (listingDate <= lastNotified) return false;
+          const { listings } = await response.json();
 
-        const criteria = subscription.criteria as Criterion[];
+          const matchingListings = listings.filter((listing: Listing) => {
+            const listingDate = new Date(listing.datePosted);
+            if (listingDate <= lastNotified) return false;
 
-        return criteria?.some((criterion: Criterion) => {
-          const value = listing[criterion.type === 'keyword' ? 'title' : criterion.type].toLowerCase();
-          return value.includes(criterion.value.toLowerCase());
-        }) ?? false;
-      });
+            const criteria = subscription.criteria as Criterion[];
 
-      if (matchingListings.length > 0) {
-        await resend.emails.send({
-          from: 'Scout <notifications@scout.yourdomain.com>',
-          to: subscription.email,
-          subject: 'New Job Listings Match Your Criteria',
-          html: `
-            <h1>New Job Listings</h1>
-            <p>We found ${matchingListings.length} new listings matching your criteria:</p>
-            ${matchingListings.map((listing: Listing) => `
-              <div style="margin-bottom: 20px;">
-                <h2>${listing.title}</h2>
-                <p><strong>${listing.company}</strong> - ${listing.location}</p>
-                <p><a href="${listing.link}">View Listing</a></p>
-              </div>
-            `).join('')}
-          `,
-        });
+            return criteria?.some((criterion: Criterion) => {
+              const value = listing[criterion.type === 'keyword' ? 'title' : criterion.type].toLowerCase();
+              return value.includes(criterion.value.toLowerCase());
+            }) ?? false;
+          });
 
-        await prisma.subscription.update({
-          where: { id: subscription.id },
-          data: { lastNotified: now.toISOString() },
-        });
+          if (matchingListings.length > 0) {
+            // Send email
+            await resend.emails.send({
+              from: 'Scout <notifications@scout.yourdomain.com>',
+              to: subscription.email,
+              subject: 'New Job Listings Match Your Criteria',
+              html: `
+                <h1>New Job Listings</h1>
+                <p>We found ${matchingListings.length} new listings matching your criteria:</p>
+                ${matchingListings.map((listing: Listing) => `
+                  <div style="margin-bottom: 20px;">
+                    <h2>${listing.title}</h2>
+                    <p><strong>${listing.company}</strong> - ${listing.location}</p>
+                    <p><a href="${listing.link}">View Listing</a></p>
+                  </div>
+                `).join('')}
+              `,
+            });
+
+            // Update last notified timestamp
+            await tx.subscription.update({
+              where: { id: subscription.id },
+              data: { lastNotified: now },
+            });
+
+            processedResults.push({
+              email: subscription.email,
+              matchedListings: matchingListings.length,
+              success: true,
+            });
+          }
+        } catch (error) {
+          console.error(`Error processing subscription ${subscription.id}:`, error);
+          processedResults.push({
+            email: subscription.email,
+            error: 'Failed to process subscription',
+            success: false,
+          });
+        }
       }
-    }
 
-    return NextResponse.json({ success: true });
+      return processedResults;
+    });
+
+    return NextResponse.json({
+      success: true,
+      processed: result
+    });
   } catch (error) {
     console.error('Error processing alerts:', error);
     return NextResponse.json(
-      { error: 'Failed to process alerts' },
+      { error: 'Failed to process alerts', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
+  } finally {
+    // Disconnect Prisma client in non-production environments
+    if (process.env.NODE_ENV !== 'production') {
+      await prisma.$disconnect();
+    }
   }
 }
