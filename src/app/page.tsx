@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { Briefcase, MapPin, Calendar, ExternalLink, Bell, DollarSign } from 'lucide-react';
+import { Dela_Gothic_One } from 'next/font/google'
 import AlertForm from '@/components/Alert';
 import CompanyLogo from '@/components/CompanyLogo';
 
@@ -13,6 +14,13 @@ type Listing = {
   company: string;
   salary: string;
 };
+
+const delaGothicOne = Dela_Gothic_One({
+  weight: ['400'],
+  style: ['normal'],
+  subsets: ['latin'],
+  display: 'swap',
+})
 
 export default function Home() {
   const [listings, setListings] = useState<Listing[]>([]);
@@ -113,7 +121,8 @@ export default function Home() {
 
       <div className="max-w-4xl flex flex-col items-center py-4 justify-center mx-auto">
         <div className="relative group cursor-pointer">
-          <span className="text-4xl tracking-[-0.01em]  font-extralight bg-gradient-to-r from-gray-800 to-gray-600 dark:from-gray-100 dark:to-gray-300 bg-clip-text text-transparent transition-all duration-300 ease-in-out group-hover:tracking-[0.2em]">
+          <span
+            className={`${delaGothicOne.className} antialiased text-4xl tracking-[-0.01em] text-[#263aff] dark:text-gray-200 font-extralight bg-gradient-to-r from-gray-800 to-gray-600 dark:from-gray-100 dark:to-gray-300 bg-clip-text text-transparent transition-all duration-300 ease-in-out group-hover:tracking-[0.2em]`}>
             scout
           </span>
           <div className="absolute -bottom-1 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-gray-400 dark:via-gray-500 to-transparent transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300 ease-in-out"></div>
