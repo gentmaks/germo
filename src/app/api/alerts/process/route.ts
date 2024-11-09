@@ -32,25 +32,33 @@ type ProcessResult = {
 
 // Helper function to parse various date formats
 function parseListingDate(dateStr: string): Date {
+  const currentDate = new Date();
+  const currentYear = currentDate.getFullYear();
+
   // Try MM/DD/YYYY format
   const slashDate = dateStr.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
   if (slashDate) {
-    const [, month, day, year] = slashDate; // Removed unused _
-    return new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+    const [, month, day, year] = slashDate;
+    // Adjust year if it's in the future
+    const parsedDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+    if (parsedDate > currentDate) {
+      parsedDate.setFullYear(currentYear - 1);
+    }
+    return parsedDate;
   }
 
   // Try Month Day format (e.g., "March 5")
   const monthDayDate = dateStr.match(/([A-Za-z]+)\s+(\d{1,2})/);
   if (monthDayDate) {
-    const [, month, day] = monthDayDate; // Removed unused _
-    const currentYear = new Date().getFullYear();
-    const date = new Date(`${month} ${day}, ${currentYear}`);
+    const [, month, day] = monthDayDate;
+    // First try with current year
+    const parsedDate = new Date(`${month} ${day}, ${currentYear}`);
 
-    // If the resulting date is in the future, subtract a year
-    if (date > new Date()) {
-      date.setFullYear(date.getFullYear() - 1);
+    // If the date is in the future, use previous year
+    if (parsedDate > currentDate) {
+      parsedDate.setFullYear(currentYear - 1);
     }
-    return date;
+    return parsedDate;
   }
 
   // If no format matches, throw error
@@ -69,7 +77,6 @@ export async function GET() {
     const result = await localPrisma.$transaction(async (tx: TransactionClient) => {
       const processedResults: ProcessResult[] = [];
 
-      // Use Prisma's typed query instead of raw SQL
       const subscriptions = await tx.subscription.findMany({
         select: {
           id: true,
@@ -93,14 +100,17 @@ export async function GET() {
           const matchingListings = listings.filter((listing: Listing) => {
             try {
               const listingDate = parseListingDate(listing.datePosted);
-
-              // Ensure both dates are compared in UTC to avoid timezone issues
               const lastNotifiedUTC = new Date(subscription.lastNotified);
-              lastNotifiedUTC.setHours(0, 0, 0, 0);
 
-              listingDate.setHours(0, 0, 0, 0);
-              console.log(listingDate, lastNotifiedUTC)
-              if (listingDate <= lastNotifiedUTC) return false;
+              // For debugging
+              console.log('Listing Date:', listingDate.toISOString());
+              console.log('Last Notified:', lastNotifiedUTC.toISOString());
+
+              // Compare dates ignoring time
+              const listingDateString = listingDate.toISOString().split('T')[0];
+              const lastNotifiedString = lastNotifiedUTC.toISOString().split('T')[0];
+
+              if (listingDateString <= lastNotifiedString) return false;
 
               const criteria = subscription.criteria as Criterion[];
 
@@ -127,12 +137,12 @@ export async function GET() {
                     <h2>${listing.title}</h2>
                     <p><strong>${listing.company}</strong> - ${listing.location}</p>
                     <p><a href="${listing.link}">View Listing</a></p>
+                    <p>Posted: ${listing.datePosted}</p>
                   </div>
                 `).join('')}
               `,
             });
 
-            // Use Prisma's typed update instead of raw SQL
             await tx.subscription.update({
               where: { id: subscription.id },
               data: { lastNotified: now },
