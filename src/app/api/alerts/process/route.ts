@@ -99,7 +99,7 @@ export async function GET() {
               lastNotifiedUTC.setHours(0, 0, 0, 0);
 
               listingDate.setHours(0, 0, 0, 0);
-
+              console.log(listingDate, lastNotifiedUTC)
               if (listingDate <= lastNotifiedUTC) return false;
 
               const criteria = subscription.criteria as Criterion[];
