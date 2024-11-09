@@ -30,12 +30,32 @@ type ProcessResult = {
   success: boolean;
 };
 
-type Subscription = {
-  id: string;
-  email: string;
-  lastNotified: Date;
-  criteria: Criterion[];
-};
+// Helper function to parse various date formats
+function parseListingDate(dateStr: string): Date {
+  // Try MM/DD/YYYY format
+  const slashDate = dateStr.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  if (slashDate) {
+    const [, month, day, year] = slashDate; // Removed unused _
+    return new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+  }
+
+  // Try Month Day format (e.g., "March 5")
+  const monthDayDate = dateStr.match(/([A-Za-z]+)\s+(\d{1,2})/);
+  if (monthDayDate) {
+    const [, month, day] = monthDayDate; // Removed unused _
+    const currentYear = new Date().getFullYear();
+    const date = new Date(`${month} ${day}, ${currentYear}`);
+
+    // If the resulting date is in the future, subtract a year
+    if (date > new Date()) {
+      date.setFullYear(date.getFullYear() - 1);
+    }
+    return date;
+  }
+
+  // If no format matches, throw error
+  throw new Error(`Unable to parse date: ${dateStr}`);
+}
 
 export async function GET() {
   let localPrisma: PrismaClient | null = null;
@@ -49,22 +69,20 @@ export async function GET() {
     const result = await localPrisma.$transaction(async (tx: TransactionClient) => {
       const processedResults: ProcessResult[] = [];
 
-      // Type the raw query results
-      const subscriptions = await tx.$queryRaw<Subscription[]>`
-        SELECT 
-          id,
-          email,
-          "lastNotified",
-          criteria
-        FROM "Subscription"
-      `;
+      // Use Prisma's typed query instead of raw SQL
+      const subscriptions = await tx.subscription.findMany({
+        select: {
+          id: true,
+          email: true,
+          lastNotified: true,
+          criteria: true,
+        },
+      });
 
       const now = new Date();
 
       for (const subscription of subscriptions) {
         try {
-          const lastNotified = new Date(subscription.lastNotified);
-
           const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/fetchJobs`);
           if (!response.ok) {
             throw new Error('Failed to fetch jobs');
@@ -73,15 +91,27 @@ export async function GET() {
           const { listings } = await response.json();
 
           const matchingListings = listings.filter((listing: Listing) => {
-            const listingDate = new Date(listing.datePosted);
-            if (listingDate <= lastNotified) return false;
+            try {
+              const listingDate = parseListingDate(listing.datePosted);
 
-            const criteria = subscription.criteria as Criterion[];
+              // Ensure both dates are compared in UTC to avoid timezone issues
+              const lastNotifiedUTC = new Date(subscription.lastNotified);
+              lastNotifiedUTC.setHours(0, 0, 0, 0);
 
-            return criteria?.some((criterion: Criterion) => {
-              const value = listing[criterion.type === 'keyword' ? 'title' : criterion.type].toLowerCase();
-              return value.includes(criterion.value.toLowerCase());
-            }) ?? false;
+              listingDate.setHours(0, 0, 0, 0);
+
+              if (listingDate <= lastNotifiedUTC) return false;
+
+              const criteria = subscription.criteria as Criterion[];
+
+              return criteria?.some((criterion: Criterion) => {
+                const value = listing[criterion.type === 'keyword' ? 'title' : criterion.type].toLowerCase();
+                return value.includes(criterion.value.toLowerCase());
+              }) ?? false;
+            } catch (error) {
+              console.error(`Error parsing date for listing:`, error);
+              return false;
+            }
           });
 
           if (matchingListings.length > 0) {
@@ -102,12 +132,11 @@ export async function GET() {
               `,
             });
 
-            // Use parameterized query instead of prepared statement
-            await tx.$executeRaw`
-              UPDATE "Subscription" 
-              SET "lastNotified" = ${now} 
-              WHERE id = ${subscription.id}
-            `;
+            // Use Prisma's typed update instead of raw SQL
+            await tx.subscription.update({
+              where: { id: subscription.id },
+              data: { lastNotified: now },
+            });
 
             processedResults.push({
               email: subscription.email,
