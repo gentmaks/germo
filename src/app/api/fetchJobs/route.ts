@@ -3,6 +3,8 @@ import axios from 'axios';
 import * as cheerio from 'cheerio';
 import { marked } from 'marked';
 
+type JobType = 'internship' | 'newgrad';
+
 type Listing = {
   company: string;
   title: string;
@@ -10,6 +12,7 @@ type Listing = {
   link: string;
   datePosted: string;
   salary: string;
+  jobType: JobType;
 };
 
 function ageToDate(age: string): string {
@@ -34,6 +37,7 @@ async function fetchScoutListings(): Promise<Listing[]> {
   const $ = cheerio.load(htmlContent);
   const listings: Listing[] = [];
   const salary = '';
+  const jobType: JobType = 'internship';
 
   const rows = $('table tbody tr');
   let prevCompany = "";
@@ -50,11 +54,11 @@ async function fetchScoutListings(): Promise<Listing[]> {
     const location = $(element).find('td').eq(2).text().trim();
     const link = $(element).find('td').eq(3).find('a').attr('href') || '';
     if (link == '') {
-      return true
+      return true;
     }
     const datePosted = $(element).find('td').eq(4).text().trim();
 
-    listings.push({ company, title, location, link, datePosted, salary });
+    listings.push({ company, title, location, link, datePosted, salary, jobType });
   });
 
   return listings;
@@ -66,6 +70,7 @@ async function fetchSpeedyApplyListings(): Promise<Listing[]> {
   const htmlContent = await marked(data);
   const $ = cheerio.load(htmlContent);
   const listings: Listing[] = [];
+  const jobType: JobType = 'internship';
 
   $('table').each((_, table) => {
     const rows = $(table).find('tbody tr');
@@ -74,9 +79,9 @@ async function fetchSpeedyApplyListings(): Promise<Listing[]> {
       const company = $(element).find('td').eq(0).text().trim();
       const title = $(element).find('td').eq(1).text().trim();
       const location = $(element).find('td').eq(2).text().trim();
-      let link = ''
-      let salary = ''
-      let age = ''
+      let link = '';
+      let salary = '';
+      let age = '';
       if ($(element).find('td').eq(3).text().includes('$')) {
         salary = $(element).find('td').eq(3).text().trim();
         link = $(element).find('td').eq(4).find('a').attr('href') || '';
@@ -88,7 +93,7 @@ async function fetchSpeedyApplyListings(): Promise<Listing[]> {
       const datePosted = ageToDate(age);
 
       if (company && title) {
-        listings.push({ company, title, location, link, datePosted, salary });
+        listings.push({ company, title, location, link, datePosted, salary, jobType });
       }
     });
   });
@@ -96,15 +101,41 @@ async function fetchSpeedyApplyListings(): Promise<Listing[]> {
   return listings;
 }
 
+async function fetchSimplifyNewGradListings(): Promise<Listing[]> {
+  const url = 'https://raw.githubusercontent.com/SimplifyJobs/New-Grad-Positions/refs/heads/dev/README.md';
+  const { data } = await axios.get(url);
+  const htmlContent = await marked(data);
+  const $ = cheerio.load(htmlContent);
+  const listings: Listing[] = [];
+  const jobType: JobType = 'newgrad';
+
+  const rows = $('table tbody tr');
+
+  rows.each((_, element) => {
+    const company = $(element).find('td').eq(0).text().trim();
+    const title = $(element).find('td').eq(1).text().trim();
+    const location = $(element).find('td').eq(2).text().trim();
+    const salary = $(element).find('td').eq(3).text().trim();
+    const link = $(element).find('td a').attr('href') || '';
+    const datePosted = $(element).find('td').eq(4).text().trim();
+
+    if (company && title) {
+      listings.push({ company, title, location, link, datePosted, salary, jobType });
+    }
+  });
+
+  return listings;
+}
 
 export async function GET() {
   try {
-    const [scoutListings, speedyApplyListings] = await Promise.all([
+    const [scoutListings, speedyApplyListings, simplifyListings] = await Promise.all([
       fetchScoutListings(),
-      fetchSpeedyApplyListings()
+      fetchSpeedyApplyListings(),
+      fetchSimplifyNewGradListings()
     ]);
 
-    const allListings = [...scoutListings, ...speedyApplyListings];
+    const allListings = [...scoutListings, ...speedyApplyListings, ...simplifyListings];
 
     // Remove duplicates based on company and title combination
     const uniqueListings = allListings.filter((listing, index, self) =>
@@ -126,7 +157,8 @@ export async function GET() {
         total: sortedListings.length,
         sources: {
           scout: scoutListings.length,
-          speedyApply: speedyApplyListings.length
+          speedyApply: speedyApplyListings.length,
+          simplify: simplifyListings.length
         }
       }
     });
