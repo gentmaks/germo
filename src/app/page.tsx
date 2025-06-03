@@ -1,13 +1,13 @@
 "use client";
 
 import { useEffect, useState, useRef, useCallback } from 'react';
-import { Bell, ChevronDown } from 'lucide-react';
+import { ChevronDown } from 'lucide-react';
 import { Dela_Gothic_One } from 'next/font/google'
 import ListingCard from '@/components/ListingCard';
 import Logo from '@/components/Logo';
 import ThemeToggle from '@/components/ThemeToggle';
 
-import { Input, Field, Button, Select, Disclosure, DisclosureButton, DisclosurePanel, Switch } from '@headlessui/react';
+import { Input, Field, Select, Disclosure, DisclosureButton, DisclosurePanel, Switch } from '@headlessui/react';
 import clsx from 'clsx';
 
 type Listing = {

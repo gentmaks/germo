@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 
 interface CompanyLogoProps {
@@ -30,10 +30,10 @@ const CompanyLogo = ({ companyName }: CompanyLogoProps) => {
   };
 
   // Generate a consistent cache key
-  const getCacheKey = (name: string): string => {
+  const getCacheKey = useCallback((name: string): string => {
     const normalized = normalizeCompanyName(name);
     return `company-logo-${normalized}`;
-  };
+  }, []);
 
   useEffect(() => {
     const cacheKey = getCacheKey(companyName);
