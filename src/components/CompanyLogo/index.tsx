@@ -89,7 +89,7 @@ const CompanyLogo = ({ companyName }: CompanyLogoProps) => {
     };
 
     fetchLogo();
-  }, [companyName]);
+  }, [companyName, getCacheKey]);
 
   if (isLoading) {
     return <div className="w-6 h-6 animate-pulse bg-gray-200 dark:bg-gray-700 rounded-full" />;

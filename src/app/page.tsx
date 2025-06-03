@@ -3,11 +3,9 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { Bell, ChevronDown } from 'lucide-react';
 import { Dela_Gothic_One } from 'next/font/google'
-import AlertForm from '@/components/Alert';
 import ListingCard from '@/components/ListingCard';
 import Logo from '@/components/Logo';
 import ThemeToggle from '@/components/ThemeToggle';
-import GmailSubscribe from '@/components/GmailSubscribe';
 
 import { Input, Field, Button, Select, Disclosure, DisclosureButton, DisclosurePanel, Switch } from '@headlessui/react';
 import clsx from 'clsx';
@@ -41,7 +39,6 @@ export default function Home() {
   const [itemsPerPage, setItemsPerPage] = useState(20);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
-  const [showAlertForm, setShowAlertForm] = useState(false);
   const observer = useRef<IntersectionObserver | null>(null);
   const [isFaang, setIsFaang] = useState(false);
   const [jobType, setJobType] = useState("both");
@@ -106,7 +103,7 @@ export default function Home() {
     setFiltered(filteredListings);
     setPage(1);
     setHasMore(true);
-  }, [search, filter, listings, isFaang, jobType]);
+  }, [search, filter, listings, isFaang, jobType, topTechCompanies]);
 
   useEffect(() => {
     const startIndex = 0;
@@ -353,13 +350,7 @@ export default function Home() {
             </div>
           )}
         </div>
-        <AlertForm
-          isOpen={showAlertForm}
-          onClose={() => setShowAlertForm(false)}
-        />
       </div>
-
-      <GmailSubscribe />
     </div>
   );
 }
