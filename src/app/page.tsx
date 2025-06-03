@@ -5,6 +5,9 @@ import { Bell, ChevronDown } from 'lucide-react';
 import { Dela_Gothic_One } from 'next/font/google'
 import AlertForm from '@/components/Alert';
 import ListingCard from '@/components/ListingCard';
+import Logo from '@/components/Logo';
+import ThemeToggle from '@/components/ThemeToggle';
+import GmailSubscribe from '@/components/GmailSubscribe';
 
 import { Input, Field, Button, Select, Disclosure, DisclosureButton, DisclosurePanel, Switch } from '@headlessui/react';
 import clsx from 'clsx';
@@ -133,18 +136,19 @@ export default function Home() {
     setHasMore(true);
   };
   return (
-    <div className="min-h-screen bg-gray-950/50 text-gray-100 px-4">
-
+    <div className="min-h-screen bg-white dark:bg-gray-950/50 text-gray-900 dark:text-gray-100 px-4">
       <div className="max-w-4xl items-center mx-auto">
-        <div className="relative flex w-full pt-4 justify-between gap-2 items-center group cursor-pointer">
-          <div
-            className={`${delaGothicOne.className} text-4xl`}>
-            SCOUT
+        <div className="relative flex w-full pt-4 justify-between gap-2 items-center">
+          <div className="flex items-center gap-3 group cursor-pointer">
+            <div className="transform transition-transform duration-300 group-hover:-rotate-6">
+              <Logo size={48} />
+            </div>
+            <div className={`${delaGothicOne.className} text-4xl bg-clip-text text-transparent bg-gradient-to-r from-blue-500 to-blue-700 transition-all duration-300 group-hover:from-blue-400 group-hover:to-blue-600`}>
+              GËRMO
+            </div>
           </div>
           <div>
-            <Button className="inline-flex items-center gap-2 rounded-md bg-gray-900 py-1.5 px-3 text-sm/6 font-semibold text-white shadow-inner focus:outline-none data-[hover]:bg-gray-800 data-[open]:bg-gray-700 data-[focus]:outline-1 data-[focus]:outline-white">
-              <Bell className="w-4 h-4" />
-            </Button>
+            <ThemeToggle />
           </div>
         </div>
       </div>
@@ -354,6 +358,8 @@ export default function Home() {
           onClose={() => setShowAlertForm(false)}
         />
       </div>
-    </div >
+
+      <GmailSubscribe />
+    </div>
   );
 }
