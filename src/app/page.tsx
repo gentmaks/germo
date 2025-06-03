@@ -103,7 +103,7 @@ export default function Home() {
     setFiltered(filteredListings);
     setPage(1);
     setHasMore(true);
-  }, [search, filter, listings, isFaang, jobType, topTechCompanies]);
+  }, [search, filter, listings, isFaang, jobType]);
 
   useEffect(() => {
     const startIndex = 0;
